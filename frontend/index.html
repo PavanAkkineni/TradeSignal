@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Analytics Platform</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <h1 class="logo">📈 Trading Analytics</h1>
+                <select id="symbolSelect" class="symbol-select">
+                    <option value="IBM">IBM</option>
+                    <option value="AAPL">AAPL</option>
+                    <option value="MSFT">MSFT</option>
+                    <option value="GOOGL">GOOGL</option>
+                </select>
+            </div>
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-tab="technical">Technical</button>
+                <button class="nav-tab" data-tab="fundamental">Fundamental</button>
+                <button class="nav-tab" data-tab="sentiment">Sentiment</button>
+                <button class="nav-tab" data-tab="signals">Trade Signals</button>
+                <button class="nav-tab" data-tab="expert">Expert Analysis</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Stock Overview Card -->
+        <div class="stock-overview-card">
+            <div class="stock-header">
+                <div class="stock-logo">
+                    <div class="logo-circle">IBM</div>
+                </div>
+                <div class="stock-info">
+                    <h2 class="company-name">International Business Machines</h2>
+                    <span class="stock-symbol">IBM • NYSE</span>
+                </div>
+            </div>
+            
+            <div class="price-section">
+                <div class="current-price">
+                    <span class="price-value" id="currentPrice">$0.00</span>
+                    <span class="price-currency">USD</span>
+                    <span class="price-change" id="priceChange">+0.00</span>
+                    <span class="price-change-percent" id="priceChangePercent">+0.00%</span>
+                </div>
+                <div class="price-meta">
+                    <span>Last update: <span id="lastUpdate">--</span></span>
+                </div>
+            </div>
+
+            <div class="key-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Market Cap</span>
+                    <span class="stat-value" id="marketCap">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">P/E Ratio</span>
+                    <span class="stat-value" id="peRatio">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Dividend Yield</span>
+                    <span class="stat-value" id="divYield">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">52W Range</span>
+                    <span class="stat-value" id="range52w">--</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-panel active" id="technical-panel">
+            <!-- Price Chart -->
+            <div class="chart-card">
+                <div class="card-header">
+                    <h3>Price Chart</h3>
+                    <div class="chart-controls">
+                        <button class="time-btn active">1D</button>
+                        <button class="time-btn">5D</button>
+                        <button class="time-btn">1M</button>
+                        <button class="time-btn">3M</button>
+                        <button class="time-btn">1Y</button>
+                    </div>
+                </div>
+                <canvas id="priceChart"></canvas>
+            </div>
+
+            <!-- Technical Indicators Grid -->
+            <div class="indicators-grid">
+                <!-- RSI Card -->
+                <div class="indicator-card">
+                    <div class="indicator-header">
+                        <h4>RSI (14)</h4>
+                        <button class="info-btn" data-topic="rsi">ℹ️</button>
+                    </div>
+                    <div class="indicator-value" id="rsiValue">50.00</div>
+                    <div class="indicator-status" id="rsiStatus">Neutral</div>
+                    <div class="indicator-bar">
+                        <div class="indicator-fill" id="rsiFill"></div>
+                    </div>
+                </div>
+
+                <!-- MACD Card -->
+                <div class="indicator-card">
+                    <div class="indicator-header">
+                        <h4>MACD</h4>
+                        <button class="info-btn" data-topic="macd">ℹ️</button>
+                    </div>
+                    <div class="indicator-values">
+                        <div class="macd-line">
+                            <span class="label">MACD:</span>
+                            <span class="value" id="macdValue">0.00</span>
+                        </div>
+                        <div class="signal-line">
+                            <span class="label">Signal:</span>
+                            <span class="value" id="signalValue">0.00</span>
+                        </div>
+                        <div class="histogram">
+                            <span class="label">Histogram:</span>
+                            <span class="value" id="histogramValue">0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Moving Averages Card -->
+                <div class="indicator-card">
+                    <div class="indicator-header">
+                        <h4>Moving Averages</h4>
+                        <button class="info-btn" data-topic="sma">ℹ️</button>
+                    </div>
+                    <div class="ma-values">
+                        <div class="ma-item">
+                            <span class="ma-label">SMA 20:</span>
+                            <span class="ma-value" id="sma20">--</span>
+                        </div>
+                        <div class="ma-item">
+                            <span class="ma-label">SMA 50:</span>
+                            <span class="ma-value" id="sma50">--</span>
+                        </div>
+                        <div class="ma-item">
+                            <span class="ma-label">SMA 200:</span>
+                            <span class="ma-value" id="sma200">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Volume Analysis Card -->
+                <div class="indicator-card">
+                    <div class="indicator-header">
+                        <h4>Volume Analysis</h4>
+                        <button class="info-btn" data-topic="volume">ℹ️</button>
+                    </div>
+                    <div class="volume-data">
+                        <div class="volume-current">
+                            <span class="label">Current:</span>
+                            <span class="value" id="currentVolume">--</span>
+                        </div>
+                        <div class="volume-avg">
+                            <span class="label">Avg (20):</span>
+                            <span class="value" id="avgVolume">--</span>
+                        </div>
+                        <div class="volume-ratio">
+                            <span class="label">Ratio:</span>
+                            <span class="value" id="volumeRatio">--</span>
+                        </div>
+                    </div>
+                    <div class="volume-signal" id="volumeSignal">--</div>
+                </div>
+
+                <!-- Bollinger Bands Card -->
+                <div class="indicator-card">
+                    <div class="indicator-header">
+                        <h4>Bollinger Bands</h4>
+                        <button class="info-btn" data-topic="bollinger">ℹ️</button>
+                    </div>
+                    <div class="bb-values">
+                        <div class="bb-item">
+                            <span class="bb-label">Upper:</span>
+                            <span class="bb-value" id="bbUpper">--</span>
+                        </div>
+                        <div class="bb-item">
+                            <span class="bb-label">Middle:</span>
+                            <span class="bb-value" id="bbMiddle">--</span>
+                        </div>
+                        <div class="bb-item">
+                            <span class="bb-label">Lower:</span>
+                            <span class="bb-value" id="bbLower">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support & Resistance Card -->
+                <div class="indicator-card">
+                    <div class="indicator-header">
+                        <h4>Support & Resistance</h4>
+                        <button class="info-btn" data-topic="support">ℹ️</button>
+                    </div>
+                    <div class="sr-levels">
+                        <div class="resistance-levels">
+                            <h5>Resistance</h5>
+                            <div id="resistanceLevels">--</div>
+                        </div>
+                        <div class="support-levels">
+                            <h5>Support</h5>
+                            <div id="supportLevels">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trade Signal Card -->
+            <div class="signal-card">
+                <div class="signal-header">
+                    <h3>Technical Analysis Signal</h3>
+                    <div class="signal-strength" id="signalStrength">
+                        <span class="strength-label">Signal Strength:</span>
+                        <div class="strength-bar">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <span class="strength-value" id="strengthValue">0</span>
+                    </div>
+                </div>
+                <div class="signal-content">
+                    <div class="signal-action" id="signalAction">HOLD</div>
+                    <div class="signal-confidence">
+                        Confidence: <span id="signalConfidence">0%</span>
+                    </div>
+                    <div class="signal-reasons">
+                        <h4>Key Signals:</h4>
+                        <ul id="signalReasons"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="fundamental-panel">
+            <div class="coming-soon">
+                <h2>Fundamental Analysis</h2>
+                <p>Coming soon...</p>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="sentiment-panel">
+            <div class="coming-soon">
+                <h2>Sentiment Analysis</h2>
+                <p>Coming soon...</p>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="signals-panel">
+            <div class="coming-soon">
+                <h2>Comprehensive Trade Signals</h2>
+                <p>Coming soon...</p>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="expert-panel">
+            <!-- Expert Analysis Content -->
+            <div class="expert-analysis-container">
+                <!-- Computed Signal Section -->
+                <div class="signal-section">
+                    <div class="signal-card computed-signal">
+                        <div class="signal-header">
+                            <h3>📊 Mathematical Model Signal</h3>
+                            <div class="signal-confidence">
+                                <span class="confidence-label">Confidence:</span>
+                                <span id="computedConfidence" class="confidence-value">--</span>
+                            </div>
+                        </div>
+                        <div class="signal-content">
+                            <div class="signal-action">
+                                <span id="computedAction" class="action-badge">--</span>
+                            </div>
+                            <div class="signal-strength">
+                                <span class="strength-label">Signal Strength:</span>
+                                <div class="strength-bar">
+                                    <div id="computedStrengthBar" class="strength-fill"></div>
+                                </div>
+                                <span id="computedStrength" class="strength-value">--</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Individual Indicators Breakdown -->
+                        <div class="indicators-breakdown">
+                            <h4>📈 Individual Indicators & Weights</h4>
+                            <div id="indicatorsList" class="indicators-list">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expert Analysis Section -->
+                <div class="signal-section">
+                    <div class="signal-card expert-signal">
+                        <div class="signal-header">
+                            <h3>🤖 Gemini Trading Expert</h3>
+                            <div class="signal-confidence">
+                                <span class="confidence-label">Expert Confidence:</span>
+                                <span id="expertConfidence" class="confidence-value">--</span>
+                            </div>
+                        </div>
+                        <div class="signal-content">
+                            <div class="signal-action">
+                                <span id="expertAction" class="action-badge">--</span>
+                            </div>
+                            <div class="agreement-status">
+                                <span id="agreementStatus" class="agreement-badge">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Expert Analysis Details -->
+                        <div class="expert-details">
+                            <div class="analysis-section">
+                                <h4>🎯 Expert Analysis</h4>
+                                <p id="expertAnalysis" class="analysis-text">Loading expert analysis...</p>
+                            </div>
+
+                            <div class="signal-breakdown-section">
+                                <h4>📊 Signal Breakdown</h4>
+                                <div id="expertBreakdown" class="breakdown-grid">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <div class="strategy-section">
+                                <h4>📋 Trading Strategy</h4>
+                                <div id="tradingStrategy" class="strategy-content">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <div class="risk-section">
+                                <h4>⚠️ Risk Assessment</h4>
+                                <div id="riskAssessment" class="risk-content">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+
+                            <div class="levels-section">
+                                <h4>🎯 Key Price Levels</h4>
+                                <div id="keyLevels" class="levels-grid">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Educational Modal -->
+    <div id="educationModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 id="modalTitle">Educational Content</h2>
+            <p id="modalDescription"></p>
+{{ ... }}
+            <div id="modalUsage"></div>
+        </div>
+    </div>
+
+    <script src="static/js/app_new.js"></script>
+</body>
+</html>
