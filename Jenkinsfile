@@ -73,8 +73,10 @@ pipeline {
             steps {
                 echo 'Building Docker image...'
                 script {
-                    def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                    docker.build("${DOCKER_IMAGE}:latest")
+                    sh """
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                    """
                 }
             }
         }
@@ -107,10 +109,13 @@ pipeline {
                 echo 'Pushing to Docker Hub...'
                 script {
                     // Login to Docker Hub using credentials stored in Jenkins
-                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
-                        def image = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                        image.push()
-                        image.push('latest')
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh """
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker push ${DOCKER_IMAGE}:latest
+                            docker logout
+                        """
                     }
                 }
             }
