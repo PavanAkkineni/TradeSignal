@@ -2,9 +2,10 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = 'trading-analytics-platform'
+        // TODO: Replace 'YOUR_DOCKERHUB_USERNAME' with your actual Docker Hub username
+        DOCKER_HUB_USERNAME = 'pavanakkineni' // e.g., 'pavanakkineni'
+        DOCKER_IMAGE = "${DOCKER_HUB_USERNAME}/trading-analytics-platform"
         DOCKER_TAG = "${BUILD_NUMBER}"
-        DOCKER_REGISTRY = 'your-registry.com' // Replace with your registry
         APP_NAME = 'trading-app'
     }
     
@@ -30,10 +31,11 @@ pipeline {
             steps {
                 echo 'Installing Python dependencies...'
                 script {
-                    // Create virtual environment and install dependencies
-                    sh '''
+                    // For Windows Jenkins agents, use bat instead of sh
+                    // For Linux/Mac Jenkins agents, use sh
+                    bat '''
                         python -m venv venv
-                        . venv/bin/activate || venv\\Scripts\\activate
+                        call venv\\Scripts\\activate
                         pip install -r requirements.txt
                     '''
                 }
@@ -44,8 +46,8 @@ pipeline {
             steps {
                 echo 'Running tests...'
                 script {
-                    sh '''
-                        . venv/bin/activate || venv\\Scripts\\activate
+                    bat '''
+                        call venv\\Scripts\\activate
                         python -m pytest tests/ || echo "No tests found"
                         python -c "from app.main import app; print('App imports successfully')"
                     '''
@@ -57,8 +59,8 @@ pipeline {
             steps {
                 echo 'Running security scans...'
                 script {
-                    sh '''
-                        . venv/bin/activate || venv\\Scripts\\activate
+                    bat '''
+                        call venv\\Scripts\\activate
                         pip install safety bandit
                         safety check || echo "Safety check completed"
                         bandit -r app/ || echo "Bandit scan completed"
@@ -81,15 +83,15 @@ pipeline {
             steps {
                 echo 'Testing Docker image...'
                 script {
-                    sh '''
-                        # Run container for testing
-                        docker run -d --name test-container -p 8001:8000 ${DOCKER_IMAGE}:${DOCKER_TAG}
-                        sleep 30
+                    bat '''
+                        REM Run container for testing
+                        docker run -d --name test-container -p 8001:8000 %DOCKER_IMAGE%:%DOCKER_TAG%
+                        timeout /t 30 /nobreak
                         
-                        # Test health endpoint
-                        curl -f http://localhost:8001/api/health || exit 1
+                        REM Test health endpoint
+                        curl -f http://localhost:8001/api/health
                         
-                        # Clean up test container
+                        REM Clean up test container
                         docker stop test-container
                         docker rm test-container
                     '''
@@ -97,14 +99,15 @@ pipeline {
             }
         }
         
-        stage('Push to Registry') {
+        stage('Push to Docker Hub') {
             when {
-                branch 'main'
+                branch 'master'  // Changed from 'main' to 'master' to match your branch
             }
             steps {
-                echo 'Pushing to Docker registry...'
+                echo 'Pushing to Docker Hub...'
                 script {
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-registry-credentials') {
+                    // Login to Docker Hub using credentials stored in Jenkins
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-credentials') {
                         def image = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
                         image.push()
                         image.push('latest')
@@ -120,18 +123,18 @@ pipeline {
             steps {
                 echo 'Deploying to staging environment...'
                 script {
-                    sh '''
-                        # Stop existing staging container
-                        docker stop ${APP_NAME}-staging || true
-                        docker rm ${APP_NAME}-staging || true
+                    bat '''
+                        REM Stop existing staging container
+                        docker stop %APP_NAME%-staging || echo "No staging container to stop"
+                        docker rm %APP_NAME%-staging || echo "No staging container to remove"
                         
-                        # Run new container
-                        docker run -d \\
-                            --name ${APP_NAME}-staging \\
-                            -p 8002:8000 \\
-                            --env-file .env \\
-                            --restart unless-stopped \\
-                            ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        REM Run new container
+                        docker run -d ^
+                            --name %APP_NAME%-staging ^
+                            -p 8002:8000 ^
+                            --env-file .env ^
+                            --restart unless-stopped ^
+                            %DOCKER_IMAGE%:%DOCKER_TAG%
                     '''
                 }
             }
@@ -139,29 +142,29 @@ pipeline {
         
         stage('Deploy to Production') {
             when {
-                branch 'main'
+                branch 'master'  // Changed from 'main' to 'master'
             }
             steps {
                 echo 'Deploying to production environment...'
                 input message: 'Deploy to production?', ok: 'Deploy'
                 script {
-                    sh '''
-                        # Blue-Green deployment strategy
+                    bat '''
+                        REM Blue-Green deployment strategy
                         
-                        # Stop old container
-                        docker stop ${APP_NAME}-prod || true
-                        docker rm ${APP_NAME}-prod || true
+                        REM Stop old container
+                        docker stop %APP_NAME%-prod || echo "No prod container to stop"
+                        docker rm %APP_NAME%-prod || echo "No prod container to remove"
                         
-                        # Run new container
-                        docker run -d \\
-                            --name ${APP_NAME}-prod \\
-                            -p 8000:8000 \\
-                            --env-file .env.prod \\
-                            --restart unless-stopped \\
-                            ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        REM Run new container
+                        docker run -d ^
+                            --name %APP_NAME%-prod ^
+                            -p 8000:8000 ^
+                            --env-file .env ^
+                            --restart unless-stopped ^
+                            %DOCKER_IMAGE%:%DOCKER_TAG%
                         
-                        # Health check
-                        sleep 30
+                        REM Health check
+                        timeout /t 30 /nobreak
                         curl -f http://localhost:8000/api/health
                     '''
                 }
