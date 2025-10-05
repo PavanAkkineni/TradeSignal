@@ -175,6 +175,36 @@ pipeline {
                 }
             }
         }
+        
+        stage('Deploy to Render') {
+            when {
+                branch 'master'  // Only deploy to Render from master branch
+            }
+            steps {
+                echo 'Deploying to Render Cloud...'
+                script {
+                    // Use Render Deploy Hook to trigger deployment
+                    withCredentials([string(credentialsId: 'render-deploy-hook', variable: 'RENDER_DEPLOY_HOOK')]) {
+                        sh '''
+                            echo "Triggering Render deployment..."
+                            
+                            # Trigger Render deployment via Deploy Hook
+                            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${RENDER_DEPLOY_HOOK}")
+                            
+                            if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
+                                echo "✅ Render deployment triggered successfully!"
+                                echo "🚀 Your app will be live at: https://trading-analytics-platform.onrender.com"
+                                echo "⏳ Deployment typically takes 5-10 minutes"
+                                echo "📊 Monitor progress at: https://dashboard.render.com"
+                            else
+                                echo "❌ Failed to trigger Render deployment. HTTP Status: $RESPONSE"
+                                exit 1
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
     }
     
     post {
