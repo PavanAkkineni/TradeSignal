@@ -158,21 +158,34 @@ def load_from_json_file(filepath):
     # Parse Alpha Vantage daily adjusted format
     time_series = data.get('Time Series (Daily)', {})
     
+    if not time_series:
+        raise Exception("No time series data found in file")
+    
     records = []
     for date_str, values in time_series.items():
-        records.append({
-            'date': date_str,
-            'open': float(values.get('1. open', 0)),
-            'high': float(values.get('2. high', 0)),
-            'low': float(values.get('3. low', 0)),
-            'close': float(values.get('4. close', 0)),
-            'volume': int(values.get('6. volume', 0))
-        })
+        try:
+            records.append({
+                'date': date_str,
+                'open': float(values.get('1. open', 0)),
+                'high': float(values.get('2. high', 0)),
+                'low': float(values.get('3. low', 0)),
+                'close': float(values.get('4. close', 0)),
+                'adjusted_close': float(values.get('5. adjusted close', values.get('4. close', 0))),
+                'volume': int(float(values.get('6. volume', 0)))
+            })
+        except (ValueError, KeyError) as e:
+            print(f"Warning: Skipping invalid record for {date_str}: {e}", file=sys.stderr)
+            continue
+    
+    if not records:
+        raise Exception("No valid price records found")
     
     df = pd.DataFrame(records)
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values('date')
     df = df.set_index('date')
+    
+    print(f"Loaded {len(df)} price records from {df.index.min()} to {df.index.max()}", file=sys.stderr)
     
     return df
 

@@ -60,27 +60,27 @@ def load_from_api(symbol, api_key):
     return data
 
 def generate_sample_fundamental_data():
-    """Generate sample fundamental data"""
+    """Generate sample fundamental data (fallback only)"""
     return {
         'Symbol': 'IBM',
         'Name': 'International Business Machines Corporation',
-        'MarketCapitalization': 150000000000,
-        'PERatio': 15.5,
-        'DividendYield': 0.035,
-        'EPS': 9.25,
-        'BookValue': 25.50,
-        'ProfitMargin': 0.12,
-        'OperatingMarginTTM': 0.15,
-        'ReturnOnAssetsTTM': 0.08,
-        'ReturnOnEquityTTM': 0.25,
-        'RevenueTTM': 60000000000,
-        'GrossProfitTTM': 30000000000,
-        'DilutedEPSTTM': 9.00,
-        'QuarterlyRevenueGrowthYOY': 0.05,
-        '52WeekHigh': 155.00,
-        '52WeekLow': 120.00,
-        'Beta': 0.85,
-        'ForwardPE': 14.2
+        'MarketCapitalization': '150000000000',
+        'PERatio': '15.5',
+        'DividendYield': '0.035',
+        'EPS': '9.25',
+        'BookValue': '25.50',
+        'ProfitMargin': '0.12',
+        'OperatingMarginTTM': '0.15',
+        'ReturnOnAssetsTTM': '0.08',
+        'ReturnOnEquityTTM': '0.25',
+        'RevenueTTM': '60000000000',
+        'GrossProfitTTM': '30000000000',
+        'DilutedEPSTTM': '9.00',
+        'QuarterlyRevenueGrowthYOY': '0.05',
+        '52WeekHigh': '155.00',
+        '52WeekLow': '120.00',
+        'Beta': '0.85',
+        'ForwardPE': '14.2'
     }
 
 def calculate_financial_health(data):
@@ -147,25 +147,56 @@ def main(args):
         # Calculate metrics
         health = calculate_financial_health(data)
         
-        # Format response
+        # Helper function to safely convert to float
+        def safe_float(value, default=0.0):
+            try:
+                if value in [None, '', 'None', 'null']:
+                    return default
+                return float(str(value).replace(',', ''))
+            except (ValueError, AttributeError):
+                return default
+        
+        # Format response with ALL available data
         result = {
             'symbol': symbol,
             'company_name': data.get('Name', 'Unknown'),
-            'market_cap': float(data.get('MarketCapitalization', 0)),
-            'pe_ratio': float(data.get('PERatio', 0)),
-            'dividend_yield': float(data.get('DividendYield', 0)) * 100,
-            'eps': float(data.get('EPS', 0)),
-            'book_value': float(data.get('BookValue', 0)),
-            'profit_margin': float(data.get('ProfitMargin', 0)) * 100,
-            'operating_margin': float(data.get('OperatingMarginTTM', 0)) * 100,
-            'roe': float(data.get('ReturnOnEquityTTM', 0)) * 100,
-            'roa': float(data.get('ReturnOnAssetsTTM', 0)) * 100,
-            'revenue_ttm': float(data.get('RevenueTTM', 0)),
-            'revenue_growth_yoy': float(data.get('QuarterlyRevenueGrowthYOY', 0)) * 100,
-            'week_52_high': float(data.get('52WeekHigh', 0)),
-            'week_52_low': float(data.get('52WeekLow', 0)),
-            'beta': float(data.get('Beta', 0)),
-            'forward_pe': float(data.get('ForwardPE', 0)),
+            'description': data.get('Description', ''),
+            'sector': data.get('Sector', ''),
+            'industry': data.get('Industry', ''),
+            'market_cap': safe_float(data.get('MarketCapitalization', 0)),
+            'pe_ratio': safe_float(data.get('PERatio', 0)),
+            'peg_ratio': safe_float(data.get('PEGRatio', 0)),
+            'trailing_pe': safe_float(data.get('TrailingPE', 0)),
+            'forward_pe': safe_float(data.get('ForwardPE', 0)),
+            'price_to_book': safe_float(data.get('PriceToBookRatio', 0)),
+            'price_to_sales': safe_float(data.get('PriceToSalesRatioTTM', 0)),
+            'dividend_yield': safe_float(data.get('DividendYield', 0)) * 100,
+            'dividend_per_share': safe_float(data.get('DividendPerShare', 0)),
+            'eps': safe_float(data.get('EPS', 0)),
+            'diluted_eps': safe_float(data.get('DilutedEPSTTM', 0)),
+            'book_value': safe_float(data.get('BookValue', 0)),
+            'revenue_per_share': safe_float(data.get('RevenuePerShareTTM', 0)),
+            'profit_margin': safe_float(data.get('ProfitMargin', 0)) * 100,
+            'operating_margin': safe_float(data.get('OperatingMarginTTM', 0)) * 100,
+            'roe': safe_float(data.get('ReturnOnEquityTTM', 0)) * 100,
+            'roa': safe_float(data.get('ReturnOnAssetsTTM', 0)) * 100,
+            'revenue_ttm': safe_float(data.get('RevenueTTM', 0)),
+            'gross_profit_ttm': safe_float(data.get('GrossProfitTTM', 0)),
+            'ebitda': safe_float(data.get('EBITDA', 0)),
+            'revenue_growth_yoy': safe_float(data.get('QuarterlyRevenueGrowthYOY', 0)) * 100,
+            'earnings_growth_yoy': safe_float(data.get('QuarterlyEarningsGrowthYOY', 0)) * 100,
+            'week_52_high': safe_float(data.get('52WeekHigh', 0)),
+            'week_52_low': safe_float(data.get('52WeekLow', 0)),
+            'day_50_moving_avg': safe_float(data.get('50DayMovingAverage', 0)),
+            'day_200_moving_avg': safe_float(data.get('200DayMovingAverage', 0)),
+            'beta': safe_float(data.get('Beta', 0)),
+            'shares_outstanding': safe_float(data.get('SharesOutstanding', 0)),
+            'analyst_target_price': safe_float(data.get('AnalystTargetPrice', 0)),
+            'analyst_rating_strong_buy': int(safe_float(data.get('AnalystRatingStrongBuy', 0))),
+            'analyst_rating_buy': int(safe_float(data.get('AnalystRatingBuy', 0))),
+            'analyst_rating_hold': int(safe_float(data.get('AnalystRatingHold', 0))),
+            'analyst_rating_sell': int(safe_float(data.get('AnalystRatingSell', 0))),
+            'analyst_rating_strong_sell': int(safe_float(data.get('AnalystRatingStrongSell', 0))),
             'financial_health': health,
             'timestamp': datetime.now().isoformat()
         }
@@ -173,6 +204,9 @@ def main(args):
         return result
         
     except Exception as e:
+        print(f"Error in main: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         return {
             'error': True,
             'message': str(e),
