@@ -21,17 +21,17 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-# Install Python 3.11 and required system packages
+# Install Python 3 and required system packages
 RUN apt-get update && apt-get install -y \
-    python3.11 \
+    python3 \
     python3-pip \
-    python3.11-venv \
+    python3-venv \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for python
-RUN ln -s /usr/bin/python3.11 /usr/bin/python && \
-    ln -s /usr/bin/pip3 /usr/bin/pip
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # Copy Python requirements and install dependencies
 COPY requirements.txt .
