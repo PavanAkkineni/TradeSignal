@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -51,10 +50,8 @@ Thumbs.db
 # Git
 .git
 .gitignore
-README.md
 
-# Docker
-Dockerfile*
+# Docker (keep Dockerfile but ignore compose files)
 docker-compose*
 .dockerignore
 
@@ -71,6 +68,35 @@ logs/
 .coverage
 htmlcov/
 
-# Node modules (if any)
+# Node modules
 node_modules/
 npm-debug.log*
+
+# Java build outputs (only in root, not in 1java/)
+1java/target/
+1java/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+!1java/src/
+!1java/pom.xml
+
+# Documentation
+*.md
+!1java/src/main/resources/static/README.md
+
+# Jenkins and deployment configs (not needed in container)
+jenkins-*.yml
+Jenkinsfile*
+render.yaml
+
+# Data directories (will be created in container)
+IBM/
+AlternativeData/
+FundamentalData/
+SentimentData/
+TechnicalAnalysis/
+
+# Batch files
+*.bat
+*.cmd
+!1java/mvnw.cmd

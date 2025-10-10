@@ -1,43 +1,66 @@
-# Use Python 3.11 slim image for smaller size
-FROM python:3.11-slim
+# Multi-stage build for Spring Boot + Python application
+# Stage 1: Build the Java application
+FROM maven:3.9-eclipse-temurin-17 AS builder
 
-# Set working directory in container
+WORKDIR /build
+
+# Copy Maven project files
+COPY 1java/pom.xml .
+COPY 1java/mvnw .
+COPY 1java/mvnw.cmd .
+COPY 1java/.mvn .mvn
+
+# Download dependencies (cached layer)
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY 1java/src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Stage 2: Runtime image with Java + Python
+FROM eclipse-temurin:17-jre
+
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
-
-# Install system dependencies
+# Install Python 3.11 and required system packages
 RUN apt-get update && apt-get install -y \
-    gcc \
+    python3.11 \
+    python3-pip \
+    python3.11-venv \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better Docker layer caching
-COPY requirements.txt .
+# Create symbolic links for python
+RUN ln -s /usr/bin/python3.11 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
 
-# Install Python dependencies
+# Copy Python requirements and install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy the built JAR from builder stage
+COPY --from=builder /build/target/*.jar app.jar
 
-# Create necessary directories
-RUN mkdir -p TechnicalAnalysis FundamentalData SentimentData AlternativeData
+# Copy Python scripts for embedded execution
+COPY 1java/src/main/resources/python-scripts /app/python-scripts
 
-# Expose the port FastAPI runs on
-EXPOSE 8000
+# Create necessary directories for data
+RUN mkdir -p /app/data/TechnicalAnalysis /app/data/FundamentalData /app/data/SentimentData /app/data/AlternativeData
 
-# Create a non-root user for security
-RUN useradd --create-home --shell /bin/bash app && \
-    chown -R app:app /app
-USER app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    JAVA_OPTS="-Xmx512m -Xms256m"
+
+# Expose Spring Boot port
+EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# Command to run the application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the Spring Boot application
+CMD ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
