@@ -32,8 +32,8 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python && \
 
 # Copy Python requirements and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --break-system-packages --upgrade pip && \
+    pip install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Copy the built JAR from builder stage
 COPY --from=builder /build/target/*.jar app.jar
