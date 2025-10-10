@@ -2,21 +2,25 @@ package com.tradesignal.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import jakarta.annotation.PostConstruct;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Service to execute Python scripts directly from Spring Boot
- * Eliminates the need for a separate Python server
+ * Extracts scripts from JAR to temp directory for execution
  */
 @Service
 public class PythonExecutorService {
@@ -26,24 +30,69 @@ public class PythonExecutorService {
     @Value("${python.interpreter:python}")
     private String pythonInterpreter;
     
-    @Value("${python.scripts.path:src/main/resources/python-scripts}")
-    private String pythonScriptsPath;
-    
     @Value("${python.timeout:30}")
     private int timeoutSeconds;
     
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ResourceLoader resourceLoader;
+    private Path tempScriptsDir;
+    
+    private static final String[] SCRIPT_NAMES = {
+        "technical_analyzer",
+        "fundamental_analyzer",
+        "sentiment_analyzer",
+        "signal_generator",
+        "stock_overview"
+    };
+    
+    public PythonExecutorService(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
+    
+    @PostConstruct
+    public void init() {
+        try {
+            // Create temp directory for Python scripts
+            tempScriptsDir = Files.createTempDirectory("python-scripts-");
+            log.info("Created temp directory for Python scripts: {}", tempScriptsDir);
+            
+            // Extract all Python scripts from classpath to temp directory
+            for (String scriptName : SCRIPT_NAMES) {
+                extractScriptFromClasspath(scriptName);
+            }
+            
+            log.info("Successfully extracted {} Python scripts", SCRIPT_NAMES.length);
+        } catch (IOException e) {
+            log.error("Failed to initialize Python scripts", e);
+        }
+    }
+    
+    private void extractScriptFromClasspath(String scriptName) throws IOException {
+        String resourcePath = "classpath:python-scripts/" + scriptName + ".py";
+        Resource resource = resourceLoader.getResource(resourcePath);
+        
+        if (!resource.exists()) {
+            log.warn("Python script not found in classpath: {}", resourcePath);
+            return;
+        }
+        
+        Path targetPath = tempScriptsDir.resolve(scriptName + ".py");
+        try (InputStream is = resource.getInputStream()) {
+            Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("Extracted script: {} -> {}", resourcePath, targetPath);
+        }
+    }
     
     /**
      * Execute a Python script with given arguments
      */
     public Map<String, Object> executePythonScript(String scriptName, Map<String, Object> args) {
         try {
-            // Build the Python script path
-            Path scriptPath = Paths.get(pythonScriptsPath, scriptName + ".py");
+            // Use the temp directory where scripts were extracted
+            Path scriptPath = tempScriptsDir.resolve(scriptName + ".py");
             
             log.info("Looking for Python script: {}", scriptPath.toAbsolutePath());
-            log.info("Current working directory: {}", Paths.get("").toAbsolutePath());
+            log.info("Temp scripts directory: {}", tempScriptsDir);
             log.info("Script exists: {}", Files.exists(scriptPath));
             
             if (!Files.exists(scriptPath)) {
