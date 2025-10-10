@@ -5,10 +5,7 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
 # Copy Maven project files
-COPY 1java/pom.xml .
-COPY 1java/mvnw .
-COPY 1java/mvnw.cmd .
-COPY 1java/.mvn .mvn
+COPY 1java/pom.xml ./pom.xml
 
 # Download dependencies (cached layer)
 RUN mvn dependency:go-offline -B
