@@ -10,9 +10,9 @@ import java.util.HashMap;
 
 /**
  * Version 2 - Service layer using embedded Python executor
- * DISABLED: Using HTTP-based TradingAnalyticsService instead
+ * Active service for single-server deployment
  */
-// @Service - DISABLED: Using HTTP approach with working Python server on port 8000
+@Service
 public class TradingAnalyticsServiceV2 {
     
     private static final Logger log = LoggerFactory.getLogger(TradingAnalyticsServiceV2.class);
