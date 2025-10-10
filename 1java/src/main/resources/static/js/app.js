@@ -5,8 +5,8 @@ let currentSymbol = 'IBM';
 let priceChart = null;
 let updateInterval = null;
 
-// API Base URL
-const API_BASE = 'http://localhost:8080/api';
+// API Base URL - dynamically uses current host (works on localhost and Render)
+const API_BASE = `${window.location.protocol}//${window.location.host}/api`;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
