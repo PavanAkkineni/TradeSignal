@@ -10,8 +10,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-# Add parent directory to path for imports
-sys.path.insert(0, 'c:/Users/admin/Documents/JOB APP/FastAPI/TradeSignal')
+# No hardcoded paths - works in Docker and locally
 
 def calculate_rsi(prices, period=14):
     """Calculate RSI"""
@@ -118,39 +117,77 @@ def calculate_support_resistance(prices):
     }
 
 def load_price_data(symbol):
-    """Load price data from JSON files"""
+    """Load price data from bundled files, API, or generate demo data"""
     try:
-        # Try to load from IBM folder (our sample data)
-        file_path = f'c:/Users/admin/Documents/JOB APP/FastAPI/TradeSignal/IBM/TechnicalAnalysis/daily_adjusted_{symbol.upper()}.json'
+        # Try to load from bundled data files (relative to script location)
+        import glob
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        if not os.path.exists(file_path):
-            # Generate sample data if file doesn't exist
-            return generate_sample_data()
+        # Look in multiple locations
+        data_paths = [
+            os.path.join(script_dir, '../data/TechnicalAnalysis/ibm_daily_adjusted_*.json'),
+            'data/TechnicalAnalysis/ibm_daily_adjusted_*.json',
+            '../data/TechnicalAnalysis/ibm_daily_adjusted_*.json',
+        ]
         
-        with open(file_path, 'r') as f:
-            data = json.load(f)
+        for pattern in data_paths:
+            files = glob.glob(pattern)
+            if files:
+                print(f"Loading data from: {files[0]}", file=sys.stderr)
+                return load_from_json_file(files[0])
         
-        # Convert to DataFrame
-        time_series = data.get('Time Series (Daily)', {})
-        if not time_series:
-            return generate_sample_data()
+        # If no files found, try API
+        api_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+        if api_key:
+            print(f"Loading data from Alpha Vantage API", file=sys.stderr)
+            return load_from_api(symbol, api_key)
         
-        df = pd.DataFrame.from_dict(time_series, orient='index')
-        df.index = pd.to_datetime(df.index)
-        df = df.sort_index()
-        
-        # Convert string values to float
-        for col in df.columns:
-            df[col] = df[col].astype(float)
-        
-        # Rename columns
-        df.columns = ['open', 'high', 'low', 'close', 'adjusted_close', 'volume', 'dividend', 'split']
-        
-        return df
+        # Fallback to demo data
+        print(f"Warning: Using demo data. Real data files not found and ALPHA_VANTAGE_API_KEY not set.", file=sys.stderr)
+        return generate_sample_data()
         
     except Exception as e:
         print(f"Error loading data: {e}", file=sys.stderr)
         return generate_sample_data()
+
+def load_from_json_file(filepath):
+    """Load data from Alpha Vantage JSON file"""
+    with open(filepath, 'r') as f:
+        data = json.load(f)
+    
+    # Parse Alpha Vantage daily adjusted format
+    time_series = data.get('Time Series (Daily)', {})
+    
+    records = []
+    for date_str, values in time_series.items():
+        records.append({
+            'date': date_str,
+            'open': float(values.get('1. open', 0)),
+            'high': float(values.get('2. high', 0)),
+            'low': float(values.get('3. low', 0)),
+            'close': float(values.get('4. close', 0)),
+            'volume': int(values.get('6. volume', 0))
+        })
+    
+    df = pd.DataFrame(records)
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.sort_values('date')
+    df = df.set_index('date')
+    
+    return df
+
+def load_from_api(symbol, api_key):
+    """Load data from Alpha Vantage API"""
+    import requests
+    
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={symbol}&apikey={api_key}&outputsize=full'
+    response = requests.get(url)
+    data = response.json()
+    
+    if 'Time Series (Daily)' not in data:
+        raise Exception(f"API error: {data.get('Note', data.get('Error Message', 'Unknown error'))}")
+    
+    return load_from_json_file_data(data)
 
 def generate_sample_data():
     """Generate sample price data for testing"""

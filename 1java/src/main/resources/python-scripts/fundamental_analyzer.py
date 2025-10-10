@@ -8,23 +8,56 @@ import os
 from datetime import datetime
 
 def load_fundamental_data(symbol):
-    """Load fundamental data from JSON files"""
+    """Load fundamental data from bundled files, API, or generate demo data"""
     try:
-        base_path = f'c:/Users/admin/Documents/JOB APP/FastAPI/TradeSignal/IBM/FundamentalData'
+        # Try to load from bundled data files (relative to script location)
+        import glob
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Load company overview
-        overview_path = os.path.join(base_path, 'company_overview_20251003_182715.json')
-        if os.path.exists(overview_path):
-            with open(overview_path, 'r') as f:
-                overview = json.load(f)
-        else:
-            overview = generate_sample_fundamental_data()
+        # Look in multiple locations
+        data_paths = [
+            os.path.join(script_dir, '../data/FundamentalData/company_overview_*.json'),
+            'data/FundamentalData/company_overview_*.json',
+            '../data/FundamentalData/company_overview_*.json',
+        ]
         
-        return overview
+        for pattern in data_paths:
+            files = glob.glob(pattern)
+            if files:
+                print(f"Loading data from: {files[0]}", file=sys.stderr)
+                return load_from_json_file(files[0])
+        
+        # If no files found, try API
+        api_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+        if api_key:
+            print(f"Loading data from Alpha Vantage API", file=sys.stderr)
+            return load_from_api(symbol, api_key)
+        
+        # Fallback to demo data
+        print(f"Warning: Using demo data. Real data files not found and ALPHA_VANTAGE_API_KEY not set.", file=sys.stderr)
+        return generate_sample_fundamental_data()
         
     except Exception as e:
         print(f"Error loading fundamental data: {e}", file=sys.stderr)
         return generate_sample_fundamental_data()
+
+def load_from_json_file(filepath):
+    """Load data from Alpha Vantage JSON file"""
+    with open(filepath, 'r') as f:
+        return json.load(f)
+
+def load_from_api(symbol, api_key):
+    """Load data from Alpha Vantage API"""
+    import requests
+    
+    url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={symbol}&apikey={api_key}'
+    response = requests.get(url)
+    data = response.json()
+    
+    if 'Symbol' not in data:
+        raise Exception(f"API error: {data.get('Note', data.get('Error Message', 'Unknown error'))}")
+    
+    return data
 
 def generate_sample_fundamental_data():
     """Generate sample fundamental data"""

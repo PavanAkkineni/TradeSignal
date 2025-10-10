@@ -52,7 +52,7 @@ public class PythonExecutorService {
     @PostConstruct
     public void init() {
         try {
-            // Create temp directory for Python scripts
+            // Create temp directory for Python scripts and data
             tempScriptsDir = Files.createTempDirectory("python-scripts-");
             log.info("Created temp directory for Python scripts: {}", tempScriptsDir);
             
@@ -61,9 +61,54 @@ public class PythonExecutorService {
                 extractScriptFromClasspath(scriptName);
             }
             
-            log.info("Successfully extracted {} Python scripts", SCRIPT_NAMES.length);
+            // Extract data files
+            extractDataFiles();
+            
+            log.info("Successfully extracted {} Python scripts and data files", SCRIPT_NAMES.length);
         } catch (IOException e) {
             log.error("Failed to initialize Python scripts", e);
+        }
+    }
+    
+    private void extractDataFiles() {
+        try {
+            // Create data directory structure
+            Path dataDir = tempScriptsDir.resolve("data");
+            Path techDir = dataDir.resolve("TechnicalAnalysis");
+            Path fundDir = dataDir.resolve("FundamentalData");
+            
+            Files.createDirectories(techDir);
+            Files.createDirectories(fundDir);
+            
+            // Extract technical data
+            extractDataFile("data/TechnicalAnalysis/ibm_daily_adjusted_20251003_181415.json", techDir);
+            
+            // Extract fundamental data
+            extractDataFile("data/FundamentalData/company_overview_20251003_182715.json", fundDir);
+            
+            log.info("Extracted data files to: {}", dataDir);
+        } catch (Exception e) {
+            log.warn("Could not extract data files (will use demo data): {}", e.getMessage());
+        }
+    }
+    
+    private void extractDataFile(String resourcePath, Path targetDir) {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:" + resourcePath);
+            if (!resource.exists()) {
+                log.warn("Data file not found in classpath: {}", resourcePath);
+                return;
+            }
+            
+            String filename = resourcePath.substring(resourcePath.lastIndexOf('/') + 1);
+            Path targetPath = targetDir.resolve(filename);
+            
+            try (InputStream is = resource.getInputStream()) {
+                Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                log.info("Extracted data file: {} -> {}", resourcePath, targetPath);
+            }
+        } catch (IOException e) {
+            log.warn("Failed to extract data file {}: {}", resourcePath, e.getMessage());
         }
     }
     

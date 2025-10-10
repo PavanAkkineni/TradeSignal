@@ -13,9 +13,10 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * Service layer to communicate with Python backend for data analysis via HTTP
+ * Service layer to communicate with Python backend for data analysis
+ * DEPRECATED: Use TradingAnalyticsServiceV2 instead (embedded Python)
  */
-@Service
+// @Service - DISABLED: Using TradingAnalyticsServiceV2 with embedded Python
 @Slf4j
 public class TradingAnalyticsService {
     
