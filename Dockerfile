@@ -7,14 +7,11 @@ WORKDIR /build
 # Copy Maven project files
 COPY 1java/pom.xml ./pom.xml
 
-# Download dependencies (cached layer)
-RUN mvn dependency:go-offline -B
-
 # Copy source code
 COPY 1java/src ./src
 
-# Build the application
-RUN mvn clean package -DskipTests
+# Build the application (Maven will download dependencies automatically)
+RUN mvn clean package -DskipTests -B
 
 # Stage 2: Runtime image with Java + Python
 FROM eclipse-temurin:17-jre
