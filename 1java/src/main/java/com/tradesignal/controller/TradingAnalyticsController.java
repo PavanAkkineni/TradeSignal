@@ -1,6 +1,6 @@
 package com.tradesignal.controller;
 
-import com.tradesignal.service.TradingAnalyticsService;
+import com.tradesignal.service.TradingAnalyticsServiceV2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ import java.util.Map;
 public class TradingAnalyticsController {
     
     @Autowired
-    private TradingAnalyticsService tradingService;
+    private TradingAnalyticsServiceV2 tradingService;
     
     @Value("${use.embedded.python:true}")
     private boolean useEmbeddedPython;
